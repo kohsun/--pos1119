@@ -1,0 +1,3072 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>花店 POS 收銀機</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --primary: #ff6b9d;
+      --primary-dark: #e85a8a;
+      --secondary: #ffd93d;
+      --bg: #fff5f8;
+      --card-bg: #fff;
+      --text: #2d3436;
+      --text-light: #636e72;
+      --border: #ffe0eb;
+      --success: #6bcf7f;
+      --danger: #ff6b6b;
+      --shadow: 0 4px 20px rgba(255, 107, 157, 0.15);
+    }
+
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      background: linear-gradient(135deg, #fff5f8 0%, #ffe8f0 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .pos-app {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--primary) 0%, #ff8cb4 100%);
+      color: white;
+      padding: 25px 30px;
+      border-radius: 20px;
+      margin-bottom: 25px;
+      box-shadow: 0 8px 40px rgba(255, 107, 157, 0.25);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+    }
+
+    .user-badge {
+      background: rgba(255, 255, 255, 0.25);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .user-badge:hover {
+      background: rgba(255, 255, 255, 0.35);
+    }
+
+    .admin-badge {
+      background: gold;
+      color: var(--text);
+      padding: 3px 8px;
+      border-radius: 10px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    #summary {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-weight: 500;
+    }
+
+    .order-controls {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .order-controls button {
+      padding: 12px 18px;
+      border: none;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      white-space: nowrap;
+      background: rgba(255, 255, 255, 0.25);
+      color: white;
+      border: 2px solid rgba(255, 255, 255, 0.5);
+    }
+
+    .order-controls button:hover {
+      background: rgba(255, 255, 255, 0.35);
+      transform: translateY(-2px);
+    }
+
+    #hold-btn {
+      background: var(--secondary);
+      color: var(--text);
+    }
+
+    .main {
+      display: grid;
+      grid-template-columns: 1fr 420px;
+      gap: 25px;
+      height: calc(100vh - 140px);
+    }
+
+    .left,
+    .right {
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 25px;
+      box-shadow: var(--shadow);
+    }
+
+    #search {
+      width: 100%;
+      padding: 15px 20px;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      font-size: 1rem;
+      margin-bottom: 20px;
+    }
+
+    #search:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      overflow-x: auto;
+    }
+
+    .tab {
+      padding: 12px 24px;
+      border: 2px solid var(--border);
+      background: white;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.3s;
+      white-space: nowrap;
+    }
+
+    .tab:hover {
+      border-color: var(--primary);
+      background: #fff0f5;
+    }
+
+    .tab.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    #products {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 15px;
+      overflow-y: auto;
+      height: calc(100vh - 380px);
+      align-content: start;
+    }
+
+    .product {
+      background: linear-gradient(135deg, #fff 0%, #fff5f8 100%);
+      border: 2px solid var(--border);
+      border-radius: 15px;
+      padding: 15px;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-align: center;
+      position: relative;
+    }
+
+    .product:hover {
+      transform: translateY(-5px);
+      border-color: var(--primary);
+      box-shadow: var(--shadow);
+    }
+
+    .product-emoji {
+      font-size: 2.5rem;
+      margin-bottom: 8px;
+    }
+
+    .product-name {
+      font-weight: 600;
+      margin-bottom: 5px;
+      font-size: 0.95rem;
+    }
+
+    .product-price {
+      color: var(--primary);
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+
+    .product-edit-btn {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: none;
+    }
+
+    .product:hover .product-edit-btn {
+      display: block;
+    }
+
+    .right {
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      max-height: calc(100vh - 140px);
+    }
+
+    #order-list {
+      max-height: 200px;
+      overflow-y: auto;
+      margin-bottom: 20px;
+      min-height: 100px;
+      position: relative;
+    }
+
+    .order-item {
+      background: var(--bg);
+      padding: 15px;
+      border-radius: 12px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .order-item-emoji {
+      font-size: 1.8rem;
+    }
+
+    .order-item-info {
+      flex: 1;
+    }
+
+    .order-item-name {
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .qty-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .qty-btn {
+      width: 32px;
+      height: 32px;
+      border: none;
+      border-radius: 8px;
+      background: var(--primary);
+      color: white;
+      font-size: 1.2rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .item-remove {
+      background: var(--danger);
+      border: none;
+      color: white;
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .total {
+      background: linear-gradient(135deg, var(--primary) 0%, #ff8cb4 100%);
+      color: white;
+      padding: 12px 15px;
+      border-radius: 10px;
+      font-size: 1.2rem;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .discount-section {
+      background: var(--bg);
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      border: 2px solid var(--border);
+    }
+
+    .discount-input-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .discount-input {
+      flex: 1;
+      padding: 10px 15px;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      text-align: center;
+      font-weight: 600;
+    }
+
+    .discount-apply-btn {
+      padding: 10px 20px;
+      border: none;
+      background: var(--primary);
+      color: white;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .payment-display {
+      background: var(--bg);
+      padding: 12px 15px;
+      border-radius: 10px;
+      text-align: center;
+      margin-bottom: 10px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      border: 2px solid var(--border);
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .controls button {
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    #pay {
+      background: linear-gradient(135deg, var(--success) 0%, #5cb85c 100%);
+      color: white;
+    }
+
+    #pay:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    #clear {
+      background: linear-gradient(135deg, var(--danger) 0%, #e74c3c 100%);
+      color: white;
+    }
+
+    #change {
+      background: var(--secondary);
+      color: var(--text);
+      padding: 12px 15px;
+      border-radius: 10px;
+      text-align: center;
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .keyboard {
+      background: var(--bg);
+      border-radius: 12px;
+      padding: 15px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 15px;
+    }
+
+    .key {
+      padding: 15px;
+      border: 2px solid var(--border);
+      background: white;
+      border-radius: 10px;
+      font-size: 1.2rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .key:hover {
+      background: var(--primary);
+      color: white;
+    }
+
+    .key.clear,
+    .key.back {
+      background: linear-gradient(135deg, var(--danger) 0%, #e74c3c 100%);
+      color: white;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-light);
+    }
+
+    .empty-state-emoji {
+      font-size: 4rem;
+      margin-bottom: 15px;
+    }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 1000;
+    }
+
+    .modal-overlay.show {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal {
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      max-width: 500px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    .modal.large {
+      max-width: 800px;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid var(--border);
+    }
+
+    .modal-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.8rem;
+      cursor: pointer;
+      color: var(--text-light);
+    }
+
+    .price-presets {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .price-preset-btn {
+      padding: 10px;
+      background: var(--secondary);
+      border: none;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 1.1rem;
+      transition: 0.2s;
+    }
+
+    .price-preset-btn:hover {
+      background: #f1c40f;
+      transform: scale(1.05);
+    }
+
+    .staff-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+    }
+
+    .staff-card {
+      background: linear-gradient(135deg, var(--primary) 0%, #ff8cb4 100%);
+      color: white;
+      padding: 30px;
+      border-radius: 15px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      position: relative;
+    }
+
+    .staff-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .staff-emoji {
+      font-size: 3rem;
+      margin-bottom: 10px;
+    }
+
+    .staff-name {
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+
+    .staff-admin-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: gold;
+      color: var(--text);
+      padding: 4px 10px;
+      border-radius: 10px;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    .add-staff-btn {
+      background: white;
+      color: var(--primary);
+      border: 3px dashed var(--primary);
+      padding: 30px;
+      border-radius: 15px;
+      text-align: center;
+      cursor: pointer;
+      font-size: 2rem;
+      font-weight: 700;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 12px 15px;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      font-size: 1rem;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 15px;
+      background: linear-gradient(135deg, var(--primary) 0%, #ff8cb4 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .modal-keyboard {
+      background: var(--bg);
+      border-radius: 12px;
+      padding: 12px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 15px;
+    }
+
+    .modal-key {
+      padding: 15px;
+      border: 2px solid var(--border);
+      background: white;
+      border-radius: 10px;
+      font-size: 1.2rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .modal-key:hover {
+      background: var(--primary);
+      color: white;
+    }
+
+    .modal-key.wide {
+      grid-column: span 2;
+    }
+
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding: 15px;
+      background: var(--bg);
+      border-radius: 10px;
+    }
+
+    .calendar-nav-btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .calendar-month {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .calendar-view {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .calendar-day {
+      background: var(--bg);
+      padding: 15px 10px;
+      border-radius: 10px;
+      text-align: center;
+      cursor: pointer;
+      border: 2px solid var(--border);
+    }
+
+    .calendar-day.has-data {
+      background: linear-gradient(135deg, var(--primary) 0%, #ff8cb4 100%);
+      color: white;
+      font-weight: 700;
+    }
+
+    .calendar-date {
+      font-weight: 700;
+      font-size: 1.2rem;
+      margin-bottom: 5px;
+    }
+
+    .calendar-revenue {
+      font-size: 0.85rem;
+      opacity: 0.9;
+    }
+
+    .day-detail-list {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .history-order-card {
+      background: var(--bg);
+      padding: 15px;
+      border-radius: 12px;
+      margin-bottom: 15px;
+      border: 2px solid var(--border);
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .history-order-card:hover {
+      border-color: var(--primary);
+      transform: translateX(5px);
+    }
+
+    .history-order-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .history-order-time {
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .history-order-total {
+      font-weight: 700;
+      color: var(--primary);
+      font-size: 1.2rem;
+    }
+
+    .history-order-items {
+      color: var(--text-light);
+      font-size: 0.9rem;
+      margin-bottom: 8px;
+    }
+
+    .history-order-detail {
+      font-size: 0.85rem;
+      color: var(--text-light);
+      padding-top: 8px;
+      border-top: 1px dashed var(--border);
+    }
+
+    .order-detail-section {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 15px;
+    }
+
+    .order-detail-header {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--border);
+    }
+
+    .order-detail-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--bg);
+    }
+
+    .order-detail-item:last-child {
+      border-bottom: none;
+    }
+
+    .order-detail-name {
+      font-weight: 600;
+    }
+
+    .order-detail-price {
+      color: var(--text-light);
+    }
+
+    .order-detail-subtotal {
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .order-summary-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      font-size: 1.1rem;
+    }
+
+    .order-summary-row.total {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--primary);
+      padding-top: 15px;
+      border-top: 2px solid var(--border);
+      margin-top: 10px;
+    }
+
+    .settings-menu {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+    }
+
+    .settings-item {
+      background: linear-gradient(135deg, var(--primary) 0%, #ff8cb4 100%);
+      color: white;
+      padding: 30px;
+      border-radius: 15px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .settings-item:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow);
+    }
+
+    .settings-icon {
+      font-size: 3rem;
+      margin-bottom: 10px;
+    }
+
+    .settings-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+
+    .product-list {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .product-list-item {
+      background: var(--bg);
+      padding: 15px;
+      border-radius: 12px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .product-edit-input {
+      width: 100px;
+      padding: 8px;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      text-align: center;
+      font-weight: 600;
+    }
+
+    .save-price-btn {
+      padding: 8px 15px;
+      background: var(--success);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-left: 10px;
+    }
+  </style>
+
+<style>
+.product-management-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.product-manage-card {
+  background: linear-gradient(135deg, #fff 0%, #fff5f8 100%);
+  border: 2px solid var(--border);
+  border-radius: 15px;
+  padding: 20px;
+  text-align: center;
+  position: relative;
+  transition: all 0.3s;
+}
+
+.product-manage-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--primary);
+  box-shadow: var(--shadow);
+}
+
+.product-manage-emoji {
+  font-size: 3rem;
+  margin-bottom: 10px;
+}
+
+.product-manage-name {
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-bottom: 5px;
+  color: var(--text);
+}
+
+.product-manage-price {
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 1.2rem;
+  margin-bottom: 10px;
+}
+
+.product-manage-category {
+  display: inline-block;
+  background: var(--secondary);
+  padding: 4px 10px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.product-manage-actions {
+  display: flex;
+  gap: 5px;
+  justify-content: center;
+}
+
+.product-manage-actions button {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.multi-price-tag {
+  display: inline-block;
+  background: var(--primary);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 8px;
+  margin: 4px;
+  font-weight: 600;
+  position: relative;
+  padding-right: 30px;
+}
+
+.multi-price-tag-remove {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255,255,255,0.3);
+  border: none;
+  color: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+</style>
+
+<style>
+.multi-price-card {
+  background: var(--bg);
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 15px;
+  border: 2px solid var(--border);
+}
+
+.multi-price-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid var(--border);
+}
+
+.multi-price-product-name {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.multi-price-emoji {
+  font-size: 2rem;
+  margin-right: 10px;
+}
+
+.price-options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.price-option-item {
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  border: 2px solid var(--border);
+  text-align: center;
+  position: relative;
+}
+
+.price-option-price {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 5px;
+}
+
+.price-option-delete {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: var(--danger);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.edit-options-btn {
+  padding: 10px 20px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.current-option-tag {
+  background: linear-gradient(135deg, var(--primary) 0%, #ff8cb4 100%);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+}
+
+.delete-option-btn {
+  background: rgba(255,255,255,0.3);
+  border: none;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.2s;
+}
+
+.delete-option-btn:hover {
+  background: rgba(255,255,255,0.5);
+}
+</style>
+</head>
+
+<body>
+  <!-- 第2部分：HTML 主體結構 -->
+<!-- 接續第1部分的 <body> 標籤後 -->
+
+  <div class="pos-app">
+    <header>
+      <div class="header-left">
+        <h1>🌸 花小店 收銀機</h1>
+        <div class="user-badge" onclick="openModal('staff-modal')">
+          <span id="current-user">👤 選擇人員</span>
+          <span id="admin-indicator"></span>
+        </div>
+        <div id="summary" style="display:none">
+          <span id="revenue-container">營收 $<span id="daily-revenue">0</span> | </span>
+          暫存 <span id="holds-count">0</span>
+        </div>
+      </div>
+      <div class="order-controls">
+        <button id="admin-settings-btn" style="display:none" onclick="openSettingsModal()">⚙️ 設定</button>
+        <button onclick="openHistory()">📅 歷史</button>
+        <button onclick="newOrder()">🆕 新訂單</button>
+        <button id="hold-btn" onclick="holdOrder()">⏸️ 暫存 <span id="hold-btn-count" style="display:none;background:#ff6b6b;color:white;padding:2px 6px;border-radius:10px;font-size:0.8em;vertical-align:middle;margin-left:4px;">0</span></button>
+        <button onclick="showHeldOrders()">📋 暫存清單</button>
+        <button onclick="endDay()">🌙 結束營業</button>
+      </div>
+    </header>
+
+    <div class="main">
+      <div class="left">
+        <input id="search" placeholder="搜尋商品... 🔍" oninput="searchProducts(this.value)">
+        <div class="tabs">
+          <button class="tab active" onclick="filterCategory('all')">全部</button>
+          <button class="tab" onclick="filterCategory('bouquet')">花束</button>
+          <button class="tab" onclick="filterCategory('accessory')">配件</button>
+          <button class="tab" onclick="filterCategory('decoration')">裝飾品</button>
+          <button class="tab" onclick="filterCategory('custom')">自訂</button>
+        </div>
+        <div id="products"></div>
+      </div>
+
+      <div class="right">
+        <div style="position:relative">
+          <div id="order-list">
+            <div class="empty-state">
+              <div class="empty-state-emoji">🌺</div>
+              <div class="empty-state-text">點擊商品加入訂單</div>
+            </div>
+          </div>
+          <div style="position:absolute;top:10px;right:10px;background:rgba(255,107,157,0.9);color:white;padding:8px 15px;border-radius:20px;font-weight:700;font-size:0.95rem;box-shadow:0 2px 8px rgba(0,0,0,0.15)" id="total-items-badge">
+            共 <span id="total-items">0</span> 件
+          </div>
+        </div>
+        <div class="total">應收:<span id="total">$0</span></div>
+        <div class="discount-section">
+          <div style="font-size:0.9rem;color:var(--text-light);margin-bottom:8px;text-align:center">💰 折扣金額</div>
+          <div class="discount-input-group">
+            <input type="number" class="discount-input" id="discount-amount" placeholder="折扣金額" value="0" onclick="showDiscountKeyboard()" readonly>
+            <button class="discount-apply-btn" onclick="applyDiscount()">套用</button>
+          </div>
+          <div class="modal-keyboard" id="discount-keyboard" style="display:none;margin-top:10px">
+            <button class="modal-key" onclick="discountKeyInput('7')">7</button>
+            <button class="modal-key" onclick="discountKeyInput('8')">8</button>
+            <button class="modal-key" onclick="discountKeyInput('9')">9</button>
+            <button class="modal-key" onclick="discountKeyInput('4')">4</button>
+            <button class="modal-key" onclick="discountKeyInput('5')">5</button>
+            <button class="modal-key" onclick="discountKeyInput('6')">6</button>
+            <button class="modal-key" onclick="discountKeyInput('1')">1</button>
+            <button class="modal-key" onclick="discountKeyInput('2')">2</button>
+            <button class="modal-key" onclick="discountKeyInput('3')">3</button>
+            <button class="modal-key" onclick="discountKeyInput('0')">0</button>
+            <button class="modal-key" onclick="discountKeyInput('00')">00</button>
+            <button class="modal-key" onclick="discountKeyInput('←')">←</button>
+            <button class="modal-key wide" onclick="discountKeyInput('C')">清除</button>
+            <button class="modal-key" onclick="hideDiscountKeyboard()">收起</button>
+          </div>
+        </div>
+        <div class="payment-display">實收:<span id="payment-display">$0</span></div>
+        <div class="controls">
+          <button id="pay" onclick="checkout()" disabled>✅ 結帳</button>
+          <button id="clear" onclick="newOrder()">❌ 清空</button>
+        </div>
+        <div id="change">找零 $0</div>
+
+        <div class="keyboard">
+          <button class="key" onclick="handleKey('7')">7</button>
+          <button class="key" onclick="handleKey('8')">8</button>
+          <button class="key" onclick="handleKey('9')">9</button>
+          <button class="key clear" onclick="handleKey('C')">C</button>
+          <button class="key" onclick="handleKey('4')">4</button>
+          <button class="key" onclick="handleKey('5')">5</button>
+          <button class="key" onclick="handleKey('6')">6</button>
+          <button class="key back" onclick="handleKey('←')">←</button>
+          <button class="key" onclick="handleKey('1')">1</button>
+          <button class="key" onclick="handleKey('2')">2</button>
+          <button class="key" onclick="handleKey('3')">3</button>
+          <button class="key" onclick="handleKey('.')">.</button>
+          <button class="key" onclick="handleKey('0')">0</button>
+          <button class="key" onclick="handleKey('00')">00</button>
+          <button class="key" onclick="handleKey('000')">000</button>
+          <button class="key" style="opacity:0;pointer-events:none"></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Staff Modal -->
+  <div class="modal-overlay" id="staff-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">👥 人員登入</div>
+        <button class="modal-close" onclick="closeModal('staff-modal')">×</button>
+      </div>
+      <div class="staff-grid" id="staff-list"></div>
+    </div>
+  </div>
+
+  <!-- Add Staff Modal -->
+  <div class="modal-overlay" id="add-staff-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">➕ 新增人員</div>
+        <button class="modal-close" onclick="closeModal('add-staff-modal')">×</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">人員名稱</label>
+        <input type="text" class="form-input" id="new-staff-name" placeholder="例如: 小明">
+      </div>
+      <div class="form-group">
+        <label class="form-label">圖示 (emoji)</label>
+        <input type="text" class="form-input" id="new-staff-emoji" placeholder="例如: 👨" maxlength="2">
+      </div>
+      <button class="btn-primary" onclick="addStaff()">新增人員</button>
+    </div>
+  </div>
+
+  <!-- Admin Password Modal -->
+  <div class="modal-overlay" id="admin-password-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">🔐 管理員密碼</div>
+        <button class="modal-close" onclick="closeModal('admin-password-modal')">×</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">請輸入管理員密碼</label>
+        <input type="password" class="form-input" id="admin-password-input" placeholder="請輸入密碼" maxlength="4">
+      </div>
+      <div class="modal-keyboard">
+        <button class="modal-key" onclick="adminPasswordKeyInput('7')">7</button>
+        <button class="modal-key" onclick="adminPasswordKeyInput('8')">8</button>
+        <button class="modal-key" onclick="adminPasswordKeyInput('9')">9</button>
+        <button class="modal-key" onclick="adminPasswordKeyInput('4')">4</button>
+        <button class="modal-key" onclick="adminPasswordKeyInput('5')">5</button>
+        <button class="modal-key" onclick="adminPasswordKeyInput('6')">6</button>
+        <button class="modal-key" onclick="adminPasswordKeyInput('1')">1</button>
+        <button class="modal-key" onclick="adminPasswordKeyInput('2')">2</button>
+        <button class="modal-key" onclick="adminPasswordKeyInput('3')">3</button>
+        <button class="modal-key" onclick="adminPasswordKeyInput('0')">0</button>
+        <button class="modal-key" onclick="adminPasswordKeyInput('00')">00</button>
+        <button class="modal-key" onclick="adminPasswordKeyInput('←')">←</button>
+        <button class="modal-key wide" onclick="adminPasswordKeyInput('C')">清除</button>
+        <button class="modal-key" onclick="verifyAdminPassword()">確認</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal-overlay" id="settings-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">⚙️ 管理員設定</div>
+        <button class="modal-close" onclick="closeModal('settings-modal')">×</button>
+      </div>
+  <div class="settings-item" onclick="openMultiPriceModal()">
+    <div class="settings-icon">🏷️</div>
+     <div class="settings-title">多價位設定</div>
+      </div>
+      <div class="settings-menu">
+        <div class="settings-item" onclick="openPriceEditModal()">
+          <div class="settings-icon">💰</div>
+          <div class="settings-title">價格設定</div>
+        </div>
+        <div class="settings-item" onclick="openModal('history-modal'); closeModal('settings-modal')">
+          <div class="settings-icon">📊</div>
+          <div class="settings-title">歷史訂單</div>
+        </div>
+        <div class="settings-item" onclick="showRevenueStats()">
+          <div class="settings-icon">💵</div>
+          <div class="settings-title">營收統計</div>
+        </div>
+<div class="settings-item" onclick="openProductManagementModal()">
+  <div class="settings-icon">📦</div>
+  <div class="settings-title">商品管理</div>
+</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Price Edit Modal -->
+  <div class="modal-overlay" id="price-edit-modal">
+    <div class="modal large">
+      <div class="modal-header">
+        <div class="modal-title">💰 價格設定</div>
+        <button class="modal-close" onclick="closeModal('price-edit-modal')">×</button>
+      </div>
+      <div id="price-edit-list" class="product-list"></div>
+    </div>
+  </div>
+
+  <!-- Edit Product Modal -->
+  <div class="modal-overlay" id="edit-product-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">✏️ 編輯商品價格</div>
+        <button class="modal-close" onclick="closeModal('edit-product-modal')">×</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">商品名稱</label>
+        <input type="text" class="form-input" id="edit-product-name" readonly>
+      </div>
+      <div class="form-group">
+        <label class="form-label">新價格</label>
+        <input type="number" class="form-input" id="edit-product-price" placeholder="輸入新價格">
+      </div>
+      <div class="modal-keyboard">
+        <button class="modal-key" onclick="editPriceKeyInput('7')">7</button>
+        <button class="modal-key" onclick="editPriceKeyInput('8')">8</button>
+        <button class="modal-key" onclick="editPriceKeyInput('9')">9</button>
+        <button class="modal-key" onclick="editPriceKeyInput('4')">4</button>
+        <button class="modal-key" onclick="editPriceKeyInput('5')">5</button>
+        <button class="modal-key" onclick="editPriceKeyInput('6')">6</button>
+        <button class="modal-key" onclick="editPriceKeyInput('1')">1</button>
+        <button class="modal-key" onclick="editPriceKeyInput('2')">2</button>
+        <button class="modal-key" onclick="editPriceKeyInput('3')">3</button>
+        <button class="modal-key" onclick="editPriceKeyInput('0')">0</button>
+        <button class="modal-key" onclick="editPriceKeyInput('00')">00</button>
+        <button class="modal-key" onclick="editPriceKeyInput('←')">←</button>
+        <button class="modal-key wide" onclick="editPriceKeyInput('C')">清除</button>
+        <button class="modal-key" onclick="saveProductPrice()">儲存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom Product Modal -->
+  <div class="modal-overlay" id="custom-product-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title" id="custom-modal-title">🌿 盆栽</div>
+        <button class="modal-close" onclick="closeModal('custom-product-modal')">×</button>
+      </div>
+      <div id="price-preset-container" style="display:none; margin-bottom: 15px;">
+        <label class="form-label">快速選價</label>
+        <div class="price-presets">
+          <button class="price-preset-btn" onclick="setPresetPrice(500)">$500</button>
+          <button class="price-preset-btn" onclick="setPresetPrice(600)">$600</button>
+          <button class="price-preset-btn" onclick="setPresetPrice(700)">$700</button>
+          <button class="price-preset-btn" onclick="setPresetPrice(800)">$800</button>
+        </div>
+      </div>
+      <div class="form-group" id="custom-name-group">
+        <label class="form-label" id="custom-name-label">商品名稱</label>
+        <input type="text" class="form-input" id="custom-product-name" placeholder="例如: 多肉植物">
+      </div>
+      <div class="form-group">
+        <label class="form-label">價格 (手動輸入)</label>
+        <input type="number" class="form-input" id="custom-product-price" placeholder="例如: 299">
+      </div>
+      <div class="modal-keyboard">
+        <button class="modal-key" onclick="modalKeyInput('7')">7</button>
+        <button class="modal-key" onclick="modalKeyInput('8')">8</button>
+        <button class="modal-key" onclick="modalKeyInput('9')">9</button>
+        <button class="modal-key" onclick="modalKeyInput('4')">4</button>
+        <button class="modal-key" onclick="modalKeyInput('5')">5</button>
+        <button class="modal-key" onclick="modalKeyInput('6')">6</button>
+        <button class="modal-key" onclick="modalKeyInput('1')">1</button>
+        <button class="modal-key" onclick="modalKeyInput('2')">2</button>
+        <button class="modal-key" onclick="modalKeyInput('3')">3</button>
+        <button class="modal-key" onclick="modalKeyInput('0')">0</button>
+        <button class="modal-key" onclick="modalKeyInput('00')">00</button>
+        <button class="modal-key" onclick="modalKeyInput('←')">←</button>
+        <button class="modal-key wide" onclick="modalKeyInput('C')">清除</button>
+        <button class="modal-key" onclick="modalKeyInput('000')">000</button>
+      </div>
+      <button class="btn-primary" onclick="addCustomProduct()" style="margin-top: 15px;">加入訂單</button>
+    </div>
+  </div>
+
+  <!-- History Modal -->
+  <div class="modal-overlay" id="history-modal">
+    <div class="modal large">
+      <div class="modal-header">
+        <div class="modal-title">📅 營運歷史</div>
+        <button class="modal-close" onclick="closeModal('history-modal')">×</button>
+      </div>
+      <div class="calendar-header">
+        <button class="calendar-nav-btn" onclick="changeMonth(-1)">◀ 上月</button>
+        <div class="calendar-month" id="calendar-month"></div>
+        <button class="calendar-nav-btn" onclick="changeMonth(1)">下月 ▶</button>
+      </div>
+      <div class="calendar-view" id="calendar-view"></div>
+    </div>
+  </div>
+
+  <!-- Day Detail Modal -->
+  <div class="modal-overlay" id="day-detail-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title" id="day-detail-title">📋 訂單明細</div>
+        <button class="modal-close" onclick="closeModal('day-detail-modal')">×</button>
+      </div>
+      <div class="day-detail-list" id="day-detail-list"></div>
+    </div>
+  </div>
+
+  <!-- Order Detail Modal -->
+  <div class="modal-overlay" id="order-detail-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">📄 訂單詳情</div>
+        <button class="modal-close" onclick="closeModal('order-detail-modal')">×</button>
+      </div>
+      <div id="order-detail-content"></div>
+    </div>
+  </div>
+
+  <!-- Quick Price Select Modal -->
+  <div class="modal-overlay" id="quick-price-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title" id="quick-price-title">選擇價格</div>
+        <button class="modal-close" onclick="closeModal('quick-price-modal')">×</button>
+      </div>
+      <div style="font-size:0.95rem;color:var(--text-light);margin-bottom:15px;text-align:center">
+        點擊價格直接加入購物車
+      </div>
+      <div id="quick-price-buttons" class="price-presets"></div>
+    </div>
+  </div>
+
+  <!-- Decoration Select Modal -->
+  <div class="modal-overlay" id="decoration-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title" id="decoration-title">✨ 裝飾品選擇</div>
+        <button class="modal-close" onclick="closeModal('decoration-modal')">×</button>
+      </div>
+      <div style="font-size:0.95rem;color:var(--text-light);margin-bottom:15px;text-align:center">
+        所有款式 $70/個<br>
+        <span style="color:var(--danger);font-weight:700">🎁 買3個優惠價 $200</span>
+      </div>
+      <div id="decoration-buttons" class="price-presets"></div>
+      <button class="btn-primary" onclick="applyDecorationDiscount()" style="margin-top:15px;background:var(--danger)">
+        🎁 自動計算優惠 (3個=$200)
+      </button>
+    </div>
+  </div>
+
+  <!-- Held Orders Modal -->
+  <div class="modal-overlay" id="held-orders-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">📋 暫存訂單清單</div>
+        <button class="modal-close" onclick="closeModal('held-orders-modal')">×</button>
+      </div>
+      <div id="held-orders-list" class="day-detail-list"></div>
+    </div>
+  </div>
+
+<!-- Multi-Price Management Modal -->
+<div class="modal-overlay" id="multi-price-modal">
+  <div class="modal large">
+    <div class="modal-header">
+      <div class="modal-title">🏷️ 多價位商品管理</div>
+      <button class="modal-close" onclick="closeModal('multi-price-modal')">×</button>
+    </div>
+    <div id="multi-price-list"></div>
+  </div>
+</div>
+
+<!-- Edit Multi-Price Options Modal -->
+<div class="modal-overlay" id="edit-options-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="edit-options-title">編輯價位選項</div>
+      <button class="modal-close" onclick="closeModal('edit-options-modal')">×</button>
+    </div>
+    
+    <div style="background:var(--bg);padding:15px;border-radius:10px;margin-bottom:20px">
+      <div style="font-weight:700;margin-bottom:10px;color:var(--primary)">現有價位</div>
+      <div id="current-options-list"></div>
+    </div>
+
+    <div style="background:#fff5f8;padding:15px;border-radius:10px;border:2px dashed var(--primary)">
+      <div style="font-weight:700;margin-bottom:10px;color:var(--primary)">➕ 新增價位</div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <input type="number" id="new-option-price" class="form-input" placeholder="例如: 600" style="flex:1">
+        <button onclick="addNewOption()" style="padding:12px 20px;background:var(--success);color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;white-space:nowrap">
+          ✅ 新增
+        </button>
+      </div>
+      <div class="modal-keyboard" style="margin-top:10px">
+        <button class="modal-key" onclick="optionPriceKeyInput('7')">7</button>
+        <button class="modal-key" onclick="optionPriceKeyInput('8')">8</button>
+        <button class="modal-key" onclick="optionPriceKeyInput('9')">9</button>
+        <button class="modal-key" onclick="optionPriceKeyInput('4')">4</button>
+        <button class="modal-key" onclick="optionPriceKeyInput('5')">5</button>
+        <button class="modal-key" onclick="optionPriceKeyInput('6')">6</button>
+        <button class="modal-key" onclick="optionPriceKeyInput('1')">1</button>
+        <button class="modal-key" onclick="optionPriceKeyInput('2')">2</button>
+        <button class="modal-key" onclick="optionPriceKeyInput('3')">3</button>
+        <button class="modal-key" onclick="optionPriceKeyInput('0')">0</button>
+        <button class="modal-key" onclick="optionPriceKeyInput('00')">00</button>
+        <button class="modal-key" onclick="optionPriceKeyInput('←')">←</button>
+        <button class="modal-key wide" onclick="optionPriceKeyInput('C')">清除</button>
+        <button class="modal-key" onclick="document.getElementById('new-option-price').value=''">重置</button>
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="closeModal('edit-options-modal')" style="margin-top:15px">
+      完成編輯
+    </button>
+  </div>
+</div>
+<div class="modal-overlay" id="product-management-modal">
+  <div class="modal large">
+    <div class="modal-header">
+      <div class="modal-title">📦 商品管理</div>
+      <button class="modal-close" onclick="closeModal('product-management-modal')">×</button>
+    </div>
+    
+    <div style="margin-bottom:20px;display:flex;gap:10px">
+      <button onclick="openAddProductModal()" style="flex:1;padding:15px;background:var(--success);color:white;border:none;border-radius:10px;font-weight:700;font-size:1.1rem;cursor:pointer">
+        ➕ 新增商品
+      </button>
+      <button onclick="showProductList()" style="flex:1;padding:15px;background:var(--primary);color:white;border:none;border-radius:10px;font-weight:700;font-size:1.1rem;cursor:pointer">
+        📋 商品列表
+      </button>
+    </div>
+
+    <div id="product-management-content"></div>
+  </div>
+</div>
+
+<!-- Add Product Modal -->
+<div class="modal-overlay" id="add-product-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">➕ 新增商品</div>
+      <button class="modal-close" onclick="closeModal('add-product-modal')">×</button>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">商品名稱 *</label>
+      <input type="text" class="form-input" id="add-product-name" placeholder="例如: 海綿">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">圖示 (emoji)</label>
+      <input type="text" class="form-input" id="add-product-emoji" placeholder="例如: 🧽" maxlength="4">
+      <div style="font-size:0.85rem;color:var(--text-light);margin-top:5px">
+        💡 提示: 可以從手機鍵盤複製 emoji，或留空使用預設圖示
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">商品類別 *</label>
+      <select class="form-input" id="add-product-category">
+        <option value="bouquet">🌹 花束</option>
+        <option value="accessory" selected>📦 配件</option>
+        <option value="decoration">✨ 裝飾品</option>
+        <option value="custom">🌿 自訂</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">價格設定 *</label>
+      <div style="margin-bottom:10px">
+        <label style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg);border-radius:8px;cursor:pointer;margin-bottom:8px">
+          <input type="radio" name="price-type" value="single" checked onchange="togglePriceType()">
+          <span>單一價格（例如: $30）</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg);border-radius:8px;cursor:pointer">
+          <input type="radio" name="price-type" value="multiple" onchange="togglePriceType()">
+          <span>多種價位（例如: $400/$500/$600）</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- 單一價格輸入 -->
+    <div class="form-group" id="single-price-section">
+      <label class="form-label">商品價格</label>
+      <input type="number" class="form-input" id="add-product-price" placeholder="例如: 30">
+      <div class="modal-keyboard" style="margin-top:10px">
+        <button class="modal-key" onclick="addProductPriceInput('7')">7</button>
+        <button class="modal-key" onclick="addProductPriceInput('8')">8</button>
+        <button class="modal-key" onclick="addProductPriceInput('9')">9</button>
+        <button class="modal-key" onclick="addProductPriceInput('4')">4</button>
+        <button class="modal-key" onclick="addProductPriceInput('5')">5</button>
+        <button class="modal-key" onclick="addProductPriceInput('6')">6</button>
+        <button class="modal-key" onclick="addProductPriceInput('1')">1</button>
+        <button class="modal-key" onclick="addProductPriceInput('2')">2</button>
+        <button class="modal-key" onclick="addProductPriceInput('3')">3</button>
+        <button class="modal-key" onclick="addProductPriceInput('0')">0</button>
+        <button class="modal-key" onclick="addProductPriceInput('00')">00</button>
+        <button class="modal-key" onclick="addProductPriceInput('←')">←</button>
+        <button class="modal-key wide" onclick="addProductPriceInput('C')">清除</button>
+        <button class="modal-key" onclick="document.getElementById('add-product-price').value=''">重置</button>
+      </div>
+    </div>
+
+    <!-- 多價位輸入 -->
+    <div class="form-group" id="multiple-price-section" style="display:none">
+      <label class="form-label">價位選項</label>
+      <div id="multi-price-options-display" style="background:var(--bg);padding:15px;border-radius:10px;margin-bottom:10px;min-height:60px">
+        <div style="text-align:center;color:var(--text-light)">尚未新增價位</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <input type="number" class="form-input" id="add-multi-price-input" placeholder="輸入價格" style="flex:1">
+        <button onclick="addMultiPriceOption()" style="padding:10px 20px;background:var(--success);color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer">
+          ➕ 加入
+        </button>
+      </div>
+      <div class="modal-keyboard" style="margin-top:10px">
+        <button class="modal-key" onclick="multiPriceInput('7')">7</button>
+        <button class="modal-key" onclick="multiPriceInput('8')">8</button>
+        <button class="modal-key" onclick="multiPriceInput('9')">9</button>
+        <button class="modal-key" onclick="multiPriceInput('4')">4</button>
+        <button class="modal-key" onclick="multiPriceInput('5')">5</button>
+        <button class="modal-key" onclick="multiPriceInput('6')">6</button>
+        <button class="modal-key" onclick="multiPriceInput('1')">1</button>
+        <button class="modal-key" onclick="multiPriceInput('2')">2</button>
+        <button class="modal-key" onclick="multiPriceInput('3')">3</button>
+        <button class="modal-key" onclick="multiPriceInput('0')">0</button>
+        <button class="modal-key" onclick="multiPriceInput('00')">00</button>
+        <button class="modal-key" onclick="multiPriceInput('←')">←</button>
+        <button class="modal-key wide" onclick="multiPriceInput('C')">清除</button>
+        <button class="modal-key" onclick="document.getElementById('add-multi-price-input').value=''">重置</button>
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="submitNewProduct()">
+      ✅ 新增商品
+    </button>
+  </div>
+</div>
+
+
+  <!-- 第3部分A：JavaScript 程式碼 (第1段) -->
+<!-- 接續第2部分後，在 </body> 前加入 -->
+<script>
+let tempMultiPriceOptions = []; // 暫存多價位選項
+
+// 開啟商品管理主頁面
+function openProductManagementModal() {
+  if (!currentStaff || !currentStaff.isAdmin) {
+    alert('⚠️ 只有管理員可以管理商品!');
+    return;
+  }
+
+  closeModal('settings-modal');
+  document.getElementById('product-management-content').innerHTML = `
+    <div style="text-align:center;padding:60px 20px;color:var(--text-light)">
+      <div style="font-size:4rem;margin-bottom:15px">📦</div>
+      <div style="font-size:1.2rem;font-weight:600">請選擇功能</div>
+      <div style="margin-top:10px">點擊上方按鈕開始管理商品</div>
+    </div>
+  `;
+  openModal('product-management-modal');
+}
+
+// 開啟新增商品視窗
+function openAddProductModal() {
+  // 重置表單
+  document.getElementById('add-product-name').value = '';
+  document.getElementById('add-product-emoji').value = '';
+  document.getElementById('add-product-category').value = 'accessory';
+  document.getElementById('add-product-price').value = '';
+  document.getElementById('add-multi-price-input').value = '';
+  document.querySelector('input[name="price-type"][value="single"]').checked = true;
+  tempMultiPriceOptions = [];
+  togglePriceType();
+  
+  closeModal('product-management-modal');
+  openModal('add-product-modal');
+}
+
+// 切換價格類型
+function togglePriceType() {
+  const priceType = document.querySelector('input[name="price-type"]:checked').value;
+  const singleSection = document.getElementById('single-price-section');
+  const multipleSection = document.getElementById('multiple-price-section');
+  
+  if (priceType === 'single') {
+    singleSection.style.display = 'block';
+    multipleSection.style.display = 'none';
+  } else {
+    singleSection.style.display = 'none';
+    multipleSection.style.display = 'block';
+    renderMultiPriceOptions();
+  }
+}
+
+// 單一價格鍵盤輸入
+function addProductPriceInput(val) {
+  const input = document.getElementById('add-product-price');
+  if (val === 'C') {
+    input.value = '';
+  } else if (val === '←') {
+    input.value = input.value.slice(0, -1);
+  } else {
+    input.value += val;
+  }
+}
+
+// 多價位鍵盤輸入
+function multiPriceInput(val) {
+  const input = document.getElementById('add-multi-price-input');
+  if (val === 'C') {
+    input.value = '';
+  } else if (val === '←') {
+    input.value = input.value.slice(0, -1);
+  } else {
+    input.value += val;
+  }
+}
+
+// 新增多價位選項
+function addMultiPriceOption() {
+  const input = document.getElementById('add-multi-price-input');
+  const price = parseInt(input.value);
+  
+  if (!price || price <= 0) {
+    alert('❌ 請輸入有效價格!');
+    return;
+  }
+  
+  if (tempMultiPriceOptions.includes(price)) {
+    alert('⚠️ 這個價位已經存在!');
+    return;
+  }
+  
+  tempMultiPriceOptions.push(price);
+  tempMultiPriceOptions.sort((a, b) => a - b);
+  input.value = '';
+  renderMultiPriceOptions();
+}
+
+// 渲染多價位選項
+function renderMultiPriceOptions() {
+  const container = document.getElementById('multi-price-options-display');
+  
+  if (tempMultiPriceOptions.length === 0) {
+    container.innerHTML = '<div style="text-align:center;color:var(--text-light)">尚未新增價位</div>';
+    return;
+  }
+  
+  container.innerHTML = tempMultiPriceOptions.map((price, index) => `
+    <span class="multi-price-tag">
+      $${price}
+      <button class="multi-price-tag-remove" onclick="removeMultiPriceOption(${index})">×</button>
+    </span>
+  `).join('');
+}
+
+// 移除多價位選項
+function removeMultiPriceOption(index) {
+  tempMultiPriceOptions.splice(index, 1);
+  renderMultiPriceOptions();
+}
+
+// 提交新增商品
+function submitNewProduct() {
+  const name = document.getElementById('add-product-name').value.trim();
+  const emoji = document.getElementById('add-product-emoji').value.trim() || '🌸';
+  const category = document.getElementById('add-product-category').value;
+  const priceType = document.querySelector('input[name="price-type"]:checked').value;
+  
+  // 驗證必填欄位
+  if (!name) {
+    alert('❌ 請輸入商品名稱!');
+    return;
+  }
+  
+  // 建立新商品物件
+  const newId = Math.max(...products.map(p => p.id)) + 1;
+  const newProduct = {
+    id: newId,
+    name: name,
+    emoji: emoji,
+    category: category
+  };
+  
+  // 處理價格
+  if (priceType === 'single') {
+    const price = parseInt(document.getElementById('add-product-price').value);
+    if (!price || price <= 0) {
+      alert('❌ 請輸入有效價格!');
+      return;
+    }
+    newProduct.price = price;
+  } else {
+    if (tempMultiPriceOptions.length === 0) {
+      alert('❌ 請至少新增一個價位選項!');
+      return;
+    }
+    newProduct.price = 0;
+    newProduct.hasOptions = true;
+    newProduct.options = [...tempMultiPriceOptions];
+  }
+  
+  // 新增到商品列表
+  products.push(newProduct);
+  saveData();
+  renderProducts();
+  
+  // 關閉視窗並顯示成功訊息
+  closeModal('add-product-modal');
+  
+  const priceDisplay = newProduct.hasOptions 
+    ? `$${newProduct.options[0]}-${newProduct.options[newProduct.options.length-1]}`
+    : `$${newProduct.price}`;
+  
+  alert(`✅ 商品新增成功!\n\n${newProduct.emoji} ${newProduct.name}\n價格: ${priceDisplay}\n類別: ${getCategoryName(category)}`);
+  
+  // 返回商品管理頁面
+  openProductManagementModal();
+  showProductList();
+}
+
+// 顯示商品列表
+function showProductList() {
+  const content = document.getElementById('product-management-content');
+  
+  const categoryMap = {
+    'bouquet': '🌹 花束',
+    'accessory': '📦 配件',
+    'decoration': '✨ 裝飾品',
+    'custom': '🌿 自訂'
+  };
+  
+  content.innerHTML = `
+    <div class="product-management-grid">
+      ${products.filter(p => !p.isCustom && !p.hasSubItems).map(p => {
+        const priceDisplay = p.hasOptions 
+          ? `$${p.options[0]}-${p.options[p.options.length-1]}`
+          : `$${p.price}`;
+        
+        return `
+          <div class="product-manage-card">
+            <div class="product-manage-emoji">${p.emoji}</div>
+            <div class="product-manage-name">${p.name}</div>
+            <div class="product-manage-category">${categoryMap[p.category] || p.category}</div>
+            <div class="product-manage-price">${priceDisplay}</div>
+            <div class="product-manage-actions">
+              <button style="background:var(--danger);color:white" onclick="deleteProduct(${p.id})">
+                🗑️ 刪除
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+// 刪除商品
+function deleteProduct(productId) {
+  const product = products.find(p => p.id === productId);
+  if (!product) return;
+  
+  if (confirm(`確定要刪除「${product.name}」嗎?\n\n⚠️ 此操作無法復原!`)) {
+    products = products.filter(p => p.id !== productId);
+    saveData();
+    renderProducts();
+    showProductList();
+    alert('✅ 商品已刪除');
+  }
+}
+
+// 取得類別名稱
+function getCategoryName(category) {
+  const map = {
+    'bouquet': '花束',
+    'accessory': '配件',
+    'decoration': '裝飾品',
+    'custom': '自訂'
+  };
+  return map[category] || category;
+}
+</script>
+
+<script>
+let currentEditingProductId = null;
+
+// 開啟多價位商品管理視窗
+function openMultiPriceModal() {
+  if (!currentStaff || !currentStaff.isAdmin) {
+    alert('⚠️ 只有管理員可以管理多價位商品!');
+    return;
+  }
+
+  closeModal('settings-modal');
+  
+  const multiPriceProducts = products.filter(p => p.hasOptions);
+  
+  if (multiPriceProducts.length === 0) {
+    alert('目前沒有多價位商品');
+    return;
+  }
+
+  const list = document.getElementById('multi-price-list');
+  list.innerHTML = multiPriceProducts.map(p => `
+    <div class="multi-price-card">
+      <div class="multi-price-header">
+        <div>
+          <span class="multi-price-emoji">${p.emoji}</span>
+          <span class="multi-price-product-name">${p.name}</span>
+        </div>
+        <button class="edit-options-btn" onclick="editProductOptions(${p.id})">
+          ✏️ 編輯價位
+        </button>
+      </div>
+      <div class="price-options-grid">
+        ${p.options.map(price => `
+          <div class="price-option-item">
+            <div class="price-option-price">$${price}</div>
+            <div style="font-size:0.85rem;color:var(--text-light)">價位選項</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+  
+  openModal('multi-price-modal');
+}
+
+// 編輯特定商品的價位選項
+function editProductOptions(productId) {
+  const product = products.find(p => p.id === productId);
+  if (!product) return;
+
+  currentEditingProductId = productId;
+  
+  document.getElementById('edit-options-title').textContent = `${product.emoji} ${product.name} - 編輯價位`;
+  document.getElementById('new-option-price').value = '';
+  
+  renderCurrentOptions();
+  
+  closeModal('multi-price-modal');
+  openModal('edit-options-modal');
+}
+
+// 渲染當前價位列表
+function renderCurrentOptions() {
+  const product = products.find(p => p.id === currentEditingProductId);
+  if (!product) return;
+
+  const container = document.getElementById('current-options-list');
+  
+  if (product.options.length === 0) {
+    container.innerHTML = '<div style="text-align:center;color:var(--text-light);padding:20px">尚無價位選項</div>';
+    return;
+  }
+
+  // 排序價位（由小到大）
+  const sortedOptions = [...product.options].sort((a, b) => a - b);
+  
+  container.innerHTML = sortedOptions.map((price, index) => `
+    <div class="current-option-tag">
+      <span style="font-size:1.2rem">$${price}</span>
+      ${sortedOptions.length > 1 ? `
+        <button class="delete-option-btn" onclick="deleteOption(${index})">
+          🗑️ 刪除
+        </button>
+      ` : '<span style="font-size:0.85rem;opacity:0.8">(至少保留1個)</span>'}
+    </div>
+  `).join('');
+}
+
+// 新增價位選項
+function addNewOption() {
+  const product = products.find(p => p.id === currentEditingProductId);
+  if (!product) return;
+
+  const newPrice = parseInt(document.getElementById('new-option-price').value);
+  
+  if (!newPrice || newPrice <= 0) {
+    alert('❌ 請輸入有效的價格!');
+    return;
+  }
+
+  // 檢查是否重複
+  if (product.options.includes(newPrice)) {
+    alert('⚠️ 這個價位已經存在!');
+    return;
+  }
+
+  // 新增價位
+  product.options.push(newPrice);
+  product.options.sort((a, b) => a - b); // 自動排序
+
+  saveData();
+  renderProducts();
+  renderCurrentOptions();
+  
+  document.getElementById('new-option-price').value = '';
+  
+  alert(`✅ 已新增價位 $${newPrice}`);
+}
+
+// 刪除價位選項
+function deleteOption(index) {
+  const product = products.find(p => p.id === currentEditingProductId);
+  if (!product) return;
+
+  if (product.options.length <= 1) {
+    alert('⚠️ 至少需要保留一個價位選項!');
+    return;
+  }
+
+  const sortedOptions = [...product.options].sort((a, b) => a - b);
+  const priceToDelete = sortedOptions[index];
+
+  if (confirm(`確定要刪除 $${priceToDelete} 這個價位嗎?`)) {
+    product.options = product.options.filter(p => p !== priceToDelete);
+    
+    saveData();
+    renderProducts();
+    renderCurrentOptions();
+    
+    alert(`✅ 已刪除價位 $${priceToDelete}`);
+  }
+}
+
+// 鍵盤輸入
+function optionPriceKeyInput(val) {
+  const input = document.getElementById('new-option-price');
+  if (val === 'C') {
+    input.value = '';
+  } else if (val === '←') {
+    input.value = input.value.slice(0, -1);
+  } else {
+    input.value += val;
+  }
+}
+</script>
+
+<script>
+  // ===== 初始化數據 =====
+  let products = [
+    { id: 1, name: '玫瑰花束', price: 0, emoji: '🌹', category: 'bouquet', hasOptions: true, options: [400, 450, 500] },
+    { id: 2, name: '向日葵束', price: 450, emoji: '🌻', category: 'bouquet' },
+    { id: 3, name: '鬱金香束', price: 520, emoji: '🌷', category: 'bouquet' },
+    { id: 4, name: '百合花束', price: 0, emoji: '🌺', category: 'bouquet', hasOptions: true, options: [500, 600, 700, 800] },
+    { id: 5, name: '康乃馨束', price: 380, emoji: '🌸', category: 'bouquet' },
+    { id: 6, name: '滿天星束', price: 420, emoji: '💐', category: 'bouquet' },
+    { id: 7, name: '繡球花束', price: 750, emoji: '🪻', category: 'bouquet' },
+    { id: 8, name: '混合花束', price: 880, emoji: '💐', category: 'bouquet' },
+    { id: 9, name: '包裝紙', price: 50, emoji: '📄', category: 'accessory' },
+    { id: 10, name: '緞帶', price: 30, emoji: '🎀', category: 'accessory' },
+    { id: 11, name: '花瓶', price: 250, emoji: '🏺', category: 'accessory' },
+    { id: 12, name: '賀卡', price: 40, emoji: '💌', category: 'accessory' },
+    { id: 13, name: '花盒', price: 120, emoji: '🎁', category: 'accessory' },
+    { id: 14, name: '保鮮劑', price: 60, emoji: '💧', category: 'accessory' },
+    { id: 15, name: '盆栽', price: 0, emoji: '🌿', category: 'custom', isCustom: true },
+    {
+      id: 16, name: '裝飾品', price: 70, emoji: '✨', category: 'decoration', hasSubItems: true, subItems: [
+        { name: 'A款', emoji: '🅰️' },
+        { name: 'B款', emoji: '🅱️' },
+        { name: 'C款', emoji: '🆎' },
+        { name: 'D款', emoji: '🅾️' },
+        { name: 'E款', emoji: '🔤' },
+        { name: 'F款', emoji: '🔡' },
+        { name: 'G款', emoji: '🔠' },
+        { name: 'H款', emoji: '💠' }
+      ]
+    }
+  ];
+
+  let staffList = [
+    { id: 1, name: '人員 1', emoji: '👨‍💼', isAdmin: true }
+  ];
+
+  let currentStaff = null;
+  let currentOrder = [];
+  let heldOrders = [];
+  let orderHistory = {};
+  let dailyRevenue = 0;
+  let paymentInput = '';
+  let discountAmount = 0;
+  let currentCategory = 'all';
+  let currentMonth = new Date();
+  let editingProductId = null;
+
+  const ADMIN_PASSWORD = '1234';
+
+  // ===== 初始化 =====
+  function init() {
+    loadData();
+    renderStaffList();
+    renderProducts();
+    updateDisplay();
+    updateCalendar();
+  }
+
+  // ===== 數據持久化 =====
+  function saveData() {
+    localStorage.setItem('posProducts', JSON.stringify(products));
+    localStorage.setItem('posStaff', JSON.stringify(staffList));
+    localStorage.setItem('posOrderHistory', JSON.stringify(orderHistory));
+    localStorage.setItem('posDailyRevenue', dailyRevenue.toString());
+  }
+
+  function loadData() {
+    const savedProducts = localStorage.getItem('posProducts');
+    const savedStaff = localStorage.getItem('posStaff');
+    const savedHistory = localStorage.getItem('posOrderHistory');
+    const savedRevenue = localStorage.getItem('posDailyRevenue');
+
+    if (savedProducts) products = JSON.parse(savedProducts);
+    if (savedStaff) staffList = JSON.parse(savedStaff);
+    if (savedHistory) orderHistory = JSON.parse(savedHistory);
+    if (savedRevenue) dailyRevenue = parseFloat(savedRevenue);
+  }
+
+  // ===== 人員管理 =====
+  function renderStaffList() {
+    const list = document.getElementById('staff-list');
+    list.innerHTML = staffList.map(s => `
+      <div class="staff-card" onclick="selectStaff(${s.id})">
+        ${s.isAdmin ? '<div class="staff-admin-badge">管理員</div>' : ''}
+        <div class="staff-emoji">${s.emoji}</div>
+        <div class="staff-name">${s.name}</div>
+      </div>
+    `).join('') + `
+      <div class="add-staff-btn" onclick="openAddStaffModal()">
+        ➕<br>新增人員
+      </div>
+    `;
+  }
+
+  function openAddStaffModal() {
+    closeModal('staff-modal');
+    document.getElementById('new-staff-name').value = '';
+    document.getElementById('new-staff-emoji').value = '';
+    openModal('add-staff-modal');
+  }
+
+  function addStaff() {
+    const name = document.getElementById('new-staff-name').value.trim();
+    const emoji = document.getElementById('new-staff-emoji').value.trim();
+
+    if (!name) {
+      alert('❌ 請輸入人員名稱!');
+      return;
+    }
+
+    const newId = Math.max(...staffList.map(s => s.id)) + 1;
+    staffList.push({
+      id: newId,
+      name: name,
+      emoji: emoji || '👤',
+      isAdmin: false
+    });
+
+    saveData();
+    renderStaffList();
+    closeModal('add-staff-modal');
+    openModal('staff-modal');
+    alert(`✅ 已新增人員: ${name}`);
+  }
+
+  function selectStaff(staffId) {
+    const staff = staffList.find(s => s.id === staffId);
+    if (!staff) return;
+
+    if (staff.isAdmin) {
+      document.getElementById('admin-password-input').value = '';
+      closeModal('staff-modal');
+      openModal('admin-password-modal');
+      window.pendingAdminStaff = staff;
+    } else {
+      currentStaff = staff;
+      updateStaffDisplay();
+      closeModal('staff-modal');
+    }
+  }
+
+  function adminPasswordKeyInput(val) {
+    const input = document.getElementById('admin-password-input');
+    if (val === 'C') {
+      input.value = '';
+    } else if (val === '←') {
+      input.value = input.value.slice(0, -1);
+    } else {
+      if (input.value.length < 4) {
+        input.value += val;
+      }
+    }
+  }
+
+  function verifyAdminPassword() {
+    const input = document.getElementById('admin-password-input').value;
+    if (input === ADMIN_PASSWORD) {
+      currentStaff = window.pendingAdminStaff;
+      updateStaffDisplay();
+      closeModal('admin-password-modal');
+      alert('✅ 管理員登入成功!');
+    } else {
+      alert('❌ 密碼錯誤!');
+      document.getElementById('admin-password-input').value = '';
+    }
+  }
+
+  function updateStaffDisplay() {
+    if (currentStaff) {
+      document.getElementById('current-user').textContent = `${currentStaff.emoji} ${currentStaff.name}`;
+      const summaryEl = document.getElementById('summary');
+
+      document.getElementById('summary').style.display = 'block';
+
+      const revenueContainer = document.getElementById('revenue-container');
+      const settingsBtn = document.getElementById('admin-settings-btn');
+      
+      if (currentStaff.isAdmin) {
+        document.getElementById('admin-indicator').innerHTML = '<span class="admin-badge">管理員</span>';
+        revenueContainer.style.display = 'inline';
+        settingsBtn.style.display = 'block';
+      } else {
+        document.getElementById('admin-indicator').innerHTML = '';
+        revenueContainer.style.display = 'none';
+        settingsBtn.style.display = 'none';
+      }
+    } else {
+      document.getElementById('summary').style.display = 'none';
+    }
+    renderProducts();
+  }
+
+  // ===== 管理員設定功能 =====
+  function openSettingsModal() {
+    if (!currentStaff || !currentStaff.isAdmin) {
+      alert('⚠️ 只有管理員可以使用設定功能!');
+      return;
+    }
+    openModal('settings-modal');
+  }
+
+  function openPriceEditModal() {
+    closeModal('settings-modal');
+    
+    const list = document.getElementById('price-edit-list');
+    list.innerHTML = products.filter(p => !p.hasOptions && !p.hasSubItems && p.price > 0).map(p => `
+      <div class="product-list-item">
+        <div>
+          <div style="font-weight:700;margin-bottom:5px">${p.emoji} ${p.name}</div>
+          <div style="color:var(--text-light);font-size:0.9rem">目前價格: $${p.price}</div>
+        </div>
+        <div style="display:flex;align-items:center">
+          <input type="number" class="product-edit-input" id="price-${p.id}" value="${p.price}">
+          <button class="save-price-btn" onclick="savePrice(${p.id})">💾 儲存</button>
+        </div>
+      </div>
+    `).join('');
+    
+    openModal('price-edit-modal');
+  }
+
+  function savePrice(productId) {
+    const input = document.getElementById(`price-${productId}`);
+    const newPrice = parseInt(input.value);
+    
+    if (!newPrice || newPrice <= 0) {
+      alert('❌ 請輸入有效價格!');
+      return;
+    }
+    
+    const product = products.find(p => p.id === productId);
+    if (product) {
+      product.price = newPrice;
+      saveData();
+      renderProducts();
+      alert(`✅ ${product.name} 價格已更新為 $${newPrice}`);
+    }
+  }
+
+  function showRevenueStats() {
+    const today = new Date().toISOString().split('T')[0];
+    const todayOrders = orderHistory[today] || [];
+    const todayRevenue = dailyRevenue;
+    
+    let totalRevenue = 0;
+    let totalOrders = 0;
+    Object.values(orderHistory).forEach(dayOrders => {
+      dayOrders.forEach(order => {
+        totalRevenue += order.total;
+        totalOrders++;
+      });
+    });
+    
+    alert(`📊 營收統計\n\n今日營收: $${todayRevenue}\n今日訂單: ${todayOrders.length} 筆\n\n總營收: $${totalRevenue}\n總訂單: ${totalOrders} 筆`);
+  }
+
+  function openProductManagement() {
+    alert('📦 商品管理功能開發中\n\n目前可用:\n• 價格設定\n• 查看歷史訂單\n• 營收統計');
+    closeModal('settings-modal');
+  }
+
+  // 繼續下一段...
+</script>
+
+<!-- 第3部分B：JavaScript 程式碼 (第2段) -->
+<!-- 接續第3部分A -->
+
+<script>
+  // ===== 商品管理 =====
+  function renderProducts() {
+    const container = document.getElementById('products');
+    const filtered = products.filter(p => {
+      if (currentCategory !== 'all' && p.category !== currentCategory) return false;
+      return true;
+    });
+
+    container.innerHTML = filtered.map(p => {
+      let priceDisplay = p.hasOptions ? `$${p.options[0]}-${p.options[p.options.length - 1]}` :
+        p.hasSubItems ? '多款選擇' :
+          p.isCustom ? '自訂' : `$${p.price}`;
+
+      return `
+        <div class="product" onclick="selectProduct(${p.id})">
+          ${currentStaff && currentStaff.isAdmin && !p.hasOptions && !p.isCustom && !p.hasSubItems ?
+          `<button class="product-edit-btn" onclick="event.stopPropagation(); editProduct(${p.id})">✏️</button>` : ''}
+          <div class="product-emoji">${p.emoji}</div>
+          <div class="product-name">${p.name}</div>
+          <div class="product-price">${priceDisplay}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function editProduct(productId) {
+    if (!currentStaff || !currentStaff.isAdmin) {
+      alert('⚠️ 只有管理員可以編輯價格!');
+      return;
+    }
+
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+
+    editingProductId = productId;
+    document.getElementById('edit-product-name').value = product.name;
+    document.getElementById('edit-product-price').value = product.price;
+    openModal('edit-product-modal');
+  }
+
+  function editPriceKeyInput(val) {
+    const input = document.getElementById('edit-product-price');
+    if (val === 'C') {
+      input.value = '';
+    } else if (val === '←') {
+      input.value = input.value.slice(0, -1);
+    } else {
+      input.value += val;
+    }
+  }
+
+  function saveProductPrice() {
+    const newPrice = parseInt(document.getElementById('edit-product-price').value);
+    if (!newPrice || newPrice <= 0) {
+      alert('❌ 請輸入有效價格!');
+      return;
+    }
+
+    const product = products.find(p => p.id === editingProductId);
+    if (product) {
+      product.price = newPrice;
+      saveData();
+      renderProducts();
+      closeModal('edit-product-modal');
+      alert('✅ 價格已更新!');
+    }
+  }
+
+  function selectProduct(productId) {
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+
+    if (product.hasOptions) {
+      showQuickPriceSelect(product);
+    } else if (product.hasSubItems) {
+      showDecorationSelect(product);
+    } else if (product.isCustom) {
+      document.getElementById('custom-modal-title').textContent = `${product.emoji} ${product.name}`;
+      document.getElementById('price-preset-container').style.display = 'none';
+      document.getElementById('custom-name-group').style.display = 'block';
+      document.getElementById('custom-product-name').value = '';
+      document.getElementById('custom-product-price').value = '';
+      window.currentCustomProduct = product;
+      openModal('custom-product-modal');
+    } else {
+      addToOrder(product.id, product.name, product.price);
+    }
+  }
+
+  function showQuickPriceSelect(product) {
+    const modal = document.getElementById('quick-price-modal');
+    document.getElementById('quick-price-title').textContent = `${product.emoji} ${product.name}`;
+
+    const container = document.getElementById('quick-price-buttons');
+    let buttonsHTML = product.options.map(price => `
+      <button class="price-preset-btn" onclick="quickAddToOrder(${product.id}, '${product.name}', ${price}, '${product.emoji}')">
+        $${price}
+      </button>
+    `).join('');
+
+    buttonsHTML += `
+      <button class="price-preset-btn" style="background:var(--primary);color:white" onclick="showCustomPriceInput(${product.id}, '${product.name}', '${product.emoji}')">
+        ✏️ 自訂
+      </button>
+    `;
+
+    container.innerHTML = buttonsHTML;
+    openModal('quick-price-modal');
+  }
+
+  function showCustomPriceInput(productId, name, emoji) {
+    closeModal('quick-price-modal');
+    document.getElementById('custom-modal-title').textContent = `${emoji} ${name} - 自訂價格`;
+    document.getElementById('price-preset-container').style.display = 'none';
+    document.getElementById('custom-name-group').style.display = 'none';
+    document.getElementById('custom-product-price').value = '';
+    window.currentCustomProduct = { id: productId, name: name, emoji: emoji, isCustomPrice: true };
+    openModal('custom-product-modal');
+  }
+
+  function showDecorationSelect(product) {
+    const modal = document.getElementById('decoration-modal');
+    document.getElementById('decoration-title').textContent = `${product.emoji} ${product.name} - 選擇款式`;
+
+    const container = document.getElementById('decoration-buttons');
+    container.innerHTML = product.subItems.map((item, index) => `
+      <button class="price-preset-btn" onclick="addDecorationToOrder('${item.name}', '${item.emoji}')">
+        ${item.emoji} ${item.name}
+      </button>
+    `).join('');
+
+    openModal('decoration-modal');
+  }
+
+  function addDecorationToOrder(itemName, itemEmoji) {
+    addToOrder(16, `裝飾品 ${itemName}`, 70, itemEmoji);
+  }
+
+  function applyDecorationDiscount() {
+    const decorationItems = currentOrder.filter(item => item.name.startsWith('裝飾品'));
+    const totalCount = decorationItems.reduce((sum, item) => sum + item.quantity, 0);
+    
+    if (totalCount < 3) {
+      alert(`⚠️ 需要購買至少3個裝飾品才能享有優惠\n\n目前購物車中: ${totalCount}個\n還需要: ${3 - totalCount}個`);
+      return;
+    }
+    
+    const sets = Math.floor(totalCount / 3);
+    const remaining = totalCount % 3;
+    
+    const originalPrice = totalCount * 70;
+    const discountedPrice = (sets * 200) + (remaining * 70);
+    const discount = originalPrice - discountedPrice;
+    
+    if (discount > 0) {
+      discountAmount = discount;
+      document.getElementById('discount-amount').value = discount;
+      updateTotals();
+      closeModal('decoration-modal');
+      
+      alert(`✅ 已自動套用裝飾品優惠!\n\n購買數量: ${totalCount}個\n原價: $${originalPrice}\n優惠價: $${discountedPrice}\n節省: $${discount}\n\n優惠組合: ${sets}組 × $200 = $${sets * 200}${remaining > 0 ? `\n零買: ${remaining}個 × $70 = $${remaining * 70}` : ''}`);
+    } else {
+      alert(`ℹ️ 目前裝飾品數量剛好是3的倍數，已享最佳優惠!\n\n購買數量: ${totalCount}個\n優惠價: $${discountedPrice}`);
+      closeModal('decoration-modal');
+    }
+  }
+
+  function quickAddToOrder(productId, name, price, emoji) {
+    addToOrder(productId, `${name} ($${price})`, price, emoji);
+    closeModal('quick-price-modal');
+  }
+
+  function setPresetPrice(price) {
+    document.getElementById('custom-product-price').value = price;
+  }
+
+  function modalKeyInput(val) {
+    const input = document.getElementById('custom-product-price');
+    if (val === 'C') {
+      input.value = '';
+    } else if (val === '←') {
+      input.value = input.value.slice(0, -1);
+    } else {
+      input.value += val;
+    }
+  }
+
+  function addCustomProduct() {
+    const product = window.currentCustomProduct;
+    if (!product) return;
+
+    const price = parseInt(document.getElementById('custom-product-price').value);
+    if (!price || price <= 0) {
+      alert('❌ 請輸入價格!');
+      return;
+    }
+
+    let name = product.name;
+
+    if (product.isCustomPrice) {
+      name = `${product.name} ($${price})`;
+      addToOrder(product.id, name, price, product.emoji);
+    } else if (product.hasOptions) {
+      name = `${product.name} ($${price})`;
+      addToOrder(product.id, name, price, product.emoji);
+    } else {
+      const customName = document.getElementById('custom-product-name').value.trim();
+      if (customName) name = customName;
+      addToOrder(product.id, name, price, product.emoji);
+    }
+
+    closeModal('custom-product-modal');
+  }
+
+  function filterCategory(cat) {
+    currentCategory = cat;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+    renderProducts();
+  }
+
+  function searchProducts(query) {
+    const filtered = products.filter(p => p.name.includes(query));
+    const container = document.getElementById('products');
+    container.innerHTML = filtered.map(p => {
+      let priceDisplay = p.hasOptions ? `$${p.options[0]}-${p.options[p.options.length - 1]}` :
+        p.isCustom ? '自訂' : `$${p.price}`;
+      return `
+        <div class="product" onclick="selectProduct(${p.id})">
+          <div class="product-emoji">${p.emoji}</div>
+          <div class="product-name">${p.name}</div>
+          <div class="product-price">${priceDisplay}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // 繼續下一段...
+</script>
+
+<!-- 第3部分C：JavaScript 程式碼 (最後一段) -->
+<!-- 接續第3部分B -->
+
+<script>
+  // ===== 訂單管理 =====
+  function addToOrder(productId, name, price, emoji) {
+    const existing = currentOrder.find(item =>
+      item.productId === productId && item.name === name && item.price === price
+    );
+
+    if (existing) {
+      existing.quantity++;
+    } else {
+      const product = products.find(p => p.id === productId);
+      currentOrder.push({
+        productId: productId,
+        name: name,
+        price: price,
+        emoji: emoji || (product ? product.emoji : '🌸'),
+        quantity: 1
+      });
+    }
+
+    updateDisplay();
+  }
+
+  function updateDisplay() {
+    const orderList = document.getElementById('order-list');
+
+    if (currentOrder.length === 0) {
+      orderList.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-emoji">🌺</div>
+          <div class="empty-state-text">點擊商品加入訂單</div>
+        </div>
+      `;
+    } else {
+      orderList.innerHTML = currentOrder.map((item, index) => `
+        <div class="order-item">
+          <div class="order-item-emoji">${item.emoji}</div>
+          <div class="order-item-info">
+            <div class="order-item-name">${item.name}</div>
+            <div style="color:var(--text-light);font-size:0.9rem">$${item.price} × ${item.quantity} = $${item.price * item.quantity}</div>
+          </div>
+          <div class="qty-controls">
+            <button class="qty-btn" onclick="changeQty(${index}, -1)">−</button>
+            <div style="font-weight:700;min-width:30px;text-align:center">${item.quantity}</div>
+            <button class="qty-btn" onclick="changeQty(${index}, 1)">+</button>
+          </div>
+          <button class="item-remove" onclick="removeItem(${index})">刪</button>
+        </div>
+      `).join('');
+    }
+
+    updateTotals();
+  }
+
+  function changeQty(index, delta) {
+    currentOrder[index].quantity += delta;
+    if (currentOrder[index].quantity <= 0) {
+      currentOrder.splice(index, 1);
+    }
+    updateDisplay();
+  }
+
+  function removeItem(index) {
+    currentOrder.splice(index, 1);
+    updateDisplay();
+  }
+
+  function updateTotals() {
+    const subtotal = currentOrder.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const total = subtotal - discountAmount;
+    const totalItems = currentOrder.reduce((sum, item) => sum + item.quantity, 0);
+
+    document.getElementById('total-items').textContent = totalItems;
+    document.getElementById('total').textContent = `$${total}`;
+    document.getElementById('pay').disabled = currentOrder.length === 0;
+
+    updateChange();
+  }
+
+  function updateChange() {
+    const subtotal = currentOrder.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const total = subtotal - discountAmount;
+    const payment = parseFloat(paymentInput) || 0;
+    const change = payment - total;
+
+    const changeEl = document.getElementById('change');
+    if (change >= 0) {
+      changeEl.textContent = `找零 $${change}`;
+      changeEl.style.background = 'var(--secondary)';
+    } else {
+      changeEl.textContent = `還差 $${Math.abs(change)}`;
+      changeEl.style.background = '#ffcccc';
+    }
+  }
+
+  function newOrder() {
+    currentOrder = [];
+    paymentInput = '';
+    discountAmount = 0;
+    document.getElementById('payment-display').textContent = '$0';
+    document.getElementById('discount-amount').value = '0';
+    updateDisplay();
+  }
+
+  function holdOrder() {
+    if (currentOrder.length === 0) {
+      alert('⚠️ 訂單是空的!');
+      return;
+    }
+    heldOrders.push({
+      items: [...currentOrder],
+      staff: currentStaff ? currentStaff.name : '未知',
+      timestamp: new Date()
+    });
+    updateSummary();
+    alert(`✅ 已暫存訂單!(共 ${heldOrders.length} 筆)`);
+    newOrder();
+  }
+
+  function showHeldOrders() {
+    if (heldOrders.length === 0) {
+      alert('🔭 目前沒有暫存訂單');
+      return;
+    }
+
+    const modal = document.getElementById('held-orders-modal');
+    const list = document.getElementById('held-orders-list');
+
+    list.innerHTML = heldOrders.map((entry, index) => {
+      const isLegacy = Array.isArray(entry);
+      const orderItems = isLegacy ? entry : entry.items;
+      const staffName = isLegacy ? '未知' : (entry.staff || '未知');
+      const timeStr = isLegacy ? '' : (entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' }) : '');
+
+      const total = orderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      return `
+        <div class="history-order-card" onclick="restoreHeldOrder(${index})">
+          <div class="history-order-header">
+            <div class="history-order-time">📋 暫存訂單 #${index + 1} ${timeStr ? `<span style="font-size:0.8em;color:#666">(${timeStr})</span>` : ''}</div>
+            <div class="history-order-total">$${total}</div>
+          </div>
+          <div class="history-order-items">
+            ${orderItems.map(item => `${item.emoji} ${item.name} ×${item.quantity}`).join(', ')}
+          </div>
+          <div style="font-size:0.85rem;color:var(--text-light);margin-top:5px;padding-top:5px;border-top:1px dashed var(--border)">
+            👤 經手: ${staffName}
+          </div>
+          <div style="margin-top:10px;display:flex;gap:10px">
+            <button onclick="event.stopPropagation(); restoreHeldOrder(${index})" 
+              style="flex:1;padding:8px;background:var(--success);color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer">
+              ✅ 恢復
+            </button>
+            <button onclick="event.stopPropagation(); deleteHeldOrder(${index})" 
+              style="flex:1;padding:8px;background:var(--danger);color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer">
+              🗑️ 刪除
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    openModal('held-orders-modal');
+  }
+
+  function restoreHeldOrder(index) {
+    if (currentOrder.length > 0) {
+      if (!confirm('⚠️ 當前訂單將被覆蓋，是否繼續?')) {
+        return;
+      }
+    }
+
+    const entry = heldOrders[index];
+    currentOrder = Array.isArray(entry) ? [...entry] : [...entry.items];
+
+    heldOrders.splice(index, 1);
+    updateSummary();
+    updateDisplay();
+    closeModal('held-orders-modal');
+    alert('✅ 已恢復暫存訂單!');
+  }
+
+  function deleteHeldOrder(index) {
+    if (confirm('確定要刪除這個暫存訂單嗎?')) {
+      heldOrders.splice(index, 1);
+      updateSummary();
+      showHeldOrders();
+    }
+  }
+
+  function checkout() {
+    if (currentOrder.length === 0) return;
+    if (!currentStaff) {
+      alert('⚠️ 請先選擇人員!');
+      openModal('staff-modal');
+      return;
+    }
+
+    const subtotal = currentOrder.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const total = subtotal - discountAmount;
+    const payment = parseFloat(paymentInput) || 0;
+
+    if (payment < total) {
+      alert('💰 實收金額不足!');
+      return;
+    }
+
+    const change = payment - total;
+    const now = new Date();
+    const dateKey = now.toISOString().split('T')[0];
+
+    if (!orderHistory[dateKey]) {
+      orderHistory[dateKey] = [];
+    }
+
+    orderHistory[dateKey].push({
+      time: now.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' }),
+      staff: currentStaff.name,
+      items: [...currentOrder],
+      subtotal: subtotal,
+      discount: discountAmount,
+      total: total,
+      payment: payment,
+      change: change
+    });
+
+    dailyRevenue += total;
+    saveData();
+    updateSummary();
+
+    alert(`✅ 交易完成!\n\n應收:$${total}\n實收:$${payment}\n找零:$${change}`);
+    newOrder();
+  }
+
+  function updateSummary() {
+    document.getElementById('daily-revenue').textContent = dailyRevenue;
+    document.getElementById('holds-count').textContent = heldOrders.length;
+
+    const holdBtnCount = document.getElementById('hold-btn-count');
+    if (heldOrders.length > 0) {
+      holdBtnCount.textContent = heldOrders.length;
+      holdBtnCount.style.display = 'inline-block';
+    } else {
+      holdBtnCount.style.display = 'none';
+    }
+  }
+
+  function endDay() {
+    if (currentOrder.length > 0) {
+      alert('⚠️ 請先完成或暫存當前訂單!');
+      return;
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    const todayOrders = orderHistory[today] || [];
+
+    const message = `🌙 結束今日營業\n\n今日營收:$${dailyRevenue}\n今日訂單:${todayOrders.length} 筆\n\n確定要結束營業嗎?`;
+
+    if (confirm(message)) {
+      dailyRevenue = 0;
+      saveData();
+      updateSummary();
+      alert('✅ 已結束營業，明天見!');
+    }
+  }
+
+  // ===== 鍵盤輸入 =====
+  function handleKey(val) {
+    if (val === 'C') {
+      paymentInput = '';
+    } else if (val === '←') {
+      paymentInput = paymentInput.slice(0, -1);
+    } else {
+      paymentInput += val;
+    }
+    document.getElementById('payment-display').textContent = `$${paymentInput || '0'}`;
+    updateChange();
+  }
+
+  function showDiscountKeyboard() {
+    document.getElementById('discount-keyboard').style.display = 'grid';
+  }
+
+  function hideDiscountKeyboard() {
+    document.getElementById('discount-keyboard').style.display = 'none';
+  }
+
+  function discountKeyInput(val) {
+    const input = document.getElementById('discount-amount');
+    if (val === 'C') {
+      input.value = '0';
+    } else if (val === '←') {
+      input.value = input.value.slice(0, -1) || '0';
+    } else {
+      if (input.value === '0') input.value = '';
+      input.value += val;
+    }
+  }
+
+  function applyDiscount() {
+    discountAmount = parseInt(document.getElementById('discount-amount').value) || 0;
+    updateTotals();
+    hideDiscountKeyboard();
+  }
+
+  // ===== 歷史記錄 =====
+  function updateCalendar() {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+
+    document.getElementById('calendar-month').textContent = `${year}年 ${month + 1}月`;
+
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    const view = document.getElementById('calendar-view');
+    view.innerHTML = '';
+
+    ['日', '一', '二', '三', '四', '五', '六'].forEach(day => {
+      const header = document.createElement('div');
+      header.style.cssText = 'text-align:center;font-weight:700;padding:10px;color:var(--primary)';
+      header.textContent = day;
+      view.appendChild(header);
+    });
+
+    for (let i = 0; i < firstDay; i++) {
+      view.appendChild(document.createElement('div'));
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const dayData = orderHistory[dateStr];
+      const hasData = dayData && dayData.length > 0;
+
+      const dayEl = document.createElement('div');
+      dayEl.className = 'calendar-day' + (hasData ? ' has-data' : '');
+      dayEl.onclick = () => hasData && showDayDetail(dateStr);
+
+      let content = `<div class="calendar-date">${day}</div>`;
+      if (hasData) {
+        if (currentStaff && currentStaff.isAdmin) {
+          const revenue = dayData.reduce((sum, order) => sum + order.total, 0);
+          content += `<div class="calendar-revenue">$${revenue}</div>`;
+        }
+      }
+      dayEl.innerHTML = content;
+      view.appendChild(dayEl);
+    }
+  }
+
+  function openHistory() {
+    if (!currentStaff) {
+      alert('❌ 請先登入人員');
+      return;
+    }
+
+    if (!currentStaff.isAdmin) {
+      alert('❌ 僅限管理員查看歷史訂單');
+      return;
+    }
+
+    openModal('history-modal');
+  }
+
+  function changeMonth(delta) {
+    currentMonth.setMonth(currentMonth.getMonth() + delta);
+    updateCalendar();
+  }
+
+  function showDayDetail(dateStr) {
+    const orders = orderHistory[dateStr];
+    if (!orders || orders.length === 0) return;
+
+    document.getElementById('day-detail-title').textContent = `📋 ${dateStr} 訂單明細`;
+
+    const list = document.getElementById('day-detail-list');
+    list.innerHTML = orders.map((order, index) => `
+      <div class="history-order-card" onclick="showOrderDetail('${dateStr}', ${index})">
+        <div class="history-order-header">
+          <div class="history-order-time">⏰ ${order.time}</div>
+          <div class="history-order-total">$${order.total}</div>
+        </div>
+        <div class="history-order-items">
+          ${order.items.map(item => `${item.emoji} ${item.name} ×${item.quantity}`).join(', ')}
+        </div>
+        <div class="history-order-detail">
+          👤 ${order.staff} | 實收: $${order.payment} | 找零: $${order.change}
+        </div>
+      </div>
+    `).join('');
+
+    closeModal('history-modal');
+    openModal('day-detail-modal');
+  }
+
+  function showOrderDetail(dateStr, orderIndex) {
+    const order = orderHistory[dateStr][orderIndex];
+    if (!order) return;
+
+    const content = document.getElementById('order-detail-content');
+    const isAdmin = currentStaff && currentStaff.isAdmin;
+
+    if (isAdmin) {
+      content.innerHTML = `
+        <div class="order-detail-section">
+          <div class="order-detail-header">📦 商品明細</div>
+          ${order.items.map(item => `
+            <div class="order-detail-item">
+              <div>
+                <div class="order-detail-name">${item.emoji} ${item.name}</div>
+                <div class="order-detail-price">單價: $${item.price} × ${item.quantity}</div>
+              </div>
+              <div class="order-detail-subtotal">$${item.price * item.quantity}</div>
+            </div>
+          `).join('')}
+        </div>
+
+        <div class="order-detail-section">
+          <div class="order-detail-header">💰 金額明細</div>
+          <div class="order-summary-row">
+            <span>小計</span>
+            <span>$${order.subtotal}</span>
+          </div>
+          ${order.discount > 0 ? `
+            <div class="order-summary-row" style="color:var(--danger)">
+              <span>折扣</span>
+              <span>- $${order.discount}</span>
+            </div>
+          ` : ''}
+          <div class="order-summary-row total">
+            <span>應收</span>
+            <span>$${order.total}</span>
+          </div>
+          <div class="order-summary-row">
+            <span>實收</span>
+            <span>$${order.payment}</span>
+          </div>
+          <div class="order-summary-row" style="color:var(--success)">
+            <span>找零</span>
+            <span>$${order.change}</span>
+          </div>
+        </div>
+
+        <div class="order-detail-section">
+          <div class="order-detail-header">ℹ️ 其他資訊</div>
+          <div class="order-summary-row">
+            <span>日期時間</span>
+            <span>${dateStr} ${order.time}</span>
+          </div>
+          <div class="order-summary-row">
+            <span>經手人員</span>
+            <span>${order.staff}</span>
+          </div>
+        </div>
+      `;
+    } else {
+      content.innerHTML = `
+        <div class="order-detail-section">
+          <div class="order-detail-header">📦 商品清單</div>
+          ${order.items.map(item => `
+            <div class="order-detail-item">
+              <div>
+                <div class="order-detail-name">${item.emoji} ${item.name}</div>
+                <div class="order-detail-price">數量: ${item.quantity}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+
+        <div class="order-detail-section">
+          <div class="order-detail-header">💰 交易資訊</div>
+          <div class="order-summary-row total">
+            <span>應收金額</span>
+            <span>$${order.total}</span>
+          </div>
+          <div class="order-summary-row">
+            <span>實收金額</span>
+            <span>$${order.payment}</span>
+          </div>
+          <div class="order-summary-row" style="color:var(--success)">
+            <span>找零</span>
+            <span>$${order.change}</span>
+          </div>
+        </div>
+
+        <div class="order-detail-section">
+          <div class="order-detail-header">ℹ️ 其他資訊</div>
+          <div class="order-summary-row">
+            <span>日期時間</span>
+            <span>${dateStr} ${order.time}</span>
+          </div>
+          <div class="order-summary-row">
+            <span>經手人員</span>
+            <span>${order.staff}</span>
+          </div>
+        </div>
+        
+        <div style="text-align:center;color:var(--text-light);font-size:0.9rem;margin-top:20px;padding:15px;background:var(--bg);border-radius:10px">
+          🔒 詳細價格僅管理員可見
+        </div>
+      `;
+    }
+
+    closeModal('day-detail-modal');
+    openModal('order-detail-modal');
+  }
+
+  // ===== Modal 管理 =====
+  function openModal(id) {
+    document.getElementById(id).classList.add('show');
+  }
+
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('show');
+  }
+
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        overlay.classList.remove('show');
+      }
+    });
+  });
+
+  // ===== 啟動 =====
+  init();
+</script>
+
+</body>
+</html>
